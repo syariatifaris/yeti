@@ -10,82 +10,82 @@ use File::Temp 'tempfile';
 use POSIX 'strftime';
 use YAML::Syck 'LoadFile', 'DumpFile';
 
-my $HOME   = $ENV{YETI_HOME} || "$ENV{HOME}/.yeti";
+my $HOME = $ENV{YETI_HOME} || "$ENV{HOME}/.yeti";
 my $AUTHOR = $ENV{LOGNAME} || $ENV{USER} || 'unknown';
 
 my $cmd = shift @ARGV || 'list';
-my $f   = main->can($cmd);
-if (defined $f) {
-	$f->(@ARGV);
-} else {
-	die "Unknown command: $cmd\n";
+my $f = main->can($cmd);
+if ( defined $f ) {
+    $f->(@ARGV);
+}
+else {
+    die "Unknown command: $cmd\n";
 }
 
 sub create {
-	my ($file, $content) = @_;
-	my $path = File::Spec->catfile($HOME, "$file.yeti");
-	my $dir  = dirname($path);
-	mkpath($dir);
+    my ( $file, $content ) = @_;
+    my $path = File::Spec->catfile( $HOME, "$file.yeti" );
+    my $dir = dirname($path);
+    mkpath($dir);
 
-	if (-e $path) {
-		die "I refuse to do that, on the grounds that you might not want me to.\n";
-	}
+    if ( -e $path ) {
+        die "I refuse to do that, on the grounds that you might not want me to.\n";
+    }
     DumpFile(
         $path,
-        {   
-        	meta => {
-        		created  => strftime( "%Y-%m-%d %H:%M", gmtime ),
-        		estimate => '30m',
-        		author   => $AUTHOR,
-        		priority => 'medium',
-        		risk     => 'low',
-        	},
-            content  => $content || '',
-            tasks    => {},
-            worklog  => [],
+        {   meta => {
+                created  => strftime( "%Y-%m-%d %H:%M", gmtime ),
+                estimate => '30m',
+                author   => $AUTHOR,
+                priority => 'medium',
+                risk     => 'low',
+            },
+            content => $content || '',
+            tasks   => {},
+            worklog => [],
         }
     );
     _edit_file($path);
 }
 
 sub list {
-	_print_list(0, $HOME);
+    _print_list( 0, $HOME );
 }
 
 sub _print_list {
-	my ($level, $dir) = @_;
-	my $dh = IO::Dir->new($dir);
-	while (my $file = $dh->read) {
-		my $path = File::Spec->catdir($dir, $file);
-		next if $file eq '.' or $file eq '..';
-		$file =~ s/\.yeti$//g;
-		if (-d $path) {
-			print "  " x $level, $file, "/\n";
-			_print_list($level + 1, $path);
-		} else {
-			print "  " x $level, $file, "\n";
-		}
-	}
+    my ( $level, $dir ) = @_;
+    my $dh = IO::Dir->new($dir);
+    while ( my $file = $dh->read ) {
+        my $path = File::Spec->catdir( $dir, $file );
+        next if $file eq '.' or $file eq '..';
+        $file =~ s/\.yeti$//g;
+        if ( -d $path ) {
+            print "  " x $level, $file, "/\n";
+            _print_list( $level + 1, $path );
+        }
+        else {
+            print "  " x $level, $file, "\n";
+        }
+    }
 }
 
 sub _edit_string {
-	my ($str) = @_;
-	my ($writer, $filename) = tempfile();
-	$writer->print($str);
-	$writer->close;
-	_edit_file($filename);
-	my $reader = IO::File->new($filename, 'r') or die "cannot read $filename: $!";
-	local $/ = undef;
-	return $reader->getline;
+    my ($str) = @_;
+    my ( $writer, $filename ) = tempfile();
+    $writer->print($str);
+    $writer->close;
+    _edit_file($filename);
+    my $reader = IO::File->new( $filename, 'r' )
+        or die "cannot read $filename: $!";
+    local $/ = undef;
+    return $reader->getline;
 }
 
 sub _edit_file {
-	my ($file) = @_;
-	my $editor = $ENV{VISUAL} || $ENV{EDITOR} || 'vi';
-	not system($editor, $file);
+    my ($file) = @_;
+    my $editor = $ENV{VISUAL} || $ENV{EDITOR} || 'vi';
+    not system( $editor, $file );
 }
-
-
 
 1;
 
