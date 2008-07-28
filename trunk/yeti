@@ -10,16 +10,27 @@ use File::Temp 'tempfile';
 use POSIX 'strftime';
 use YAML::Syck 'LoadFile', 'DumpFile';
 
-my $HOME = $ENV{YETI_HOME} || "$ENV{HOME}/.yeti";
+
+my $DEBUG  = $ENV{YETI_DEBUG} || 0;
+my $HOME   = $ENV{YETI_HOME} || "$ENV{HOME}/.yeti";
 my $AUTHOR = $ENV{LOGNAME} || $ENV{USER} || 'unknown';
 
 my $cmd = shift @ARGV || 'list';
-my $f = main->can($cmd);
+my $f = main->can($cmd) if ( $cmd !~ /^_/ or $DEBUG );
 if ( defined $f ) {
     $f->(@ARGV);
 }
 else {
     die "Unknown command: $cmd\n";
+}
+
+sub init {
+    my $project_name = shift;
+}
+
+sub add {
+    my $type = shift || die usage();
+
 }
 
 sub create {
@@ -85,6 +96,27 @@ sub _edit_file {
     my ($file) = @_;
     my $editor = $ENV{VISUAL} || $ENV{EDITOR} || 'vi';
     not system( $editor, $file );
+}
+
+sub _to_dirname {
+    my @name = shift || return;
+    my $dirname = join( '_', map( lc, split(/[\s_]+/, join( ' ', @name ) ) ) );
+    print "$dirname\n" if $DEBUG;
+    return $dirname;
+}
+
+sub _from_dirname {
+    my $dirname = shift || return;
+    my $name = join( ' ', split( /_+/, ucfirst($dirname)));
+    print "$name" if $DEBUG;
+    return $name;
+}
+
+sub usage {
+    my $message = shift || '';
+    return "$message\n".<<USAGE;
+Usage info goes here;
+USAGE
 }
 
 1;
